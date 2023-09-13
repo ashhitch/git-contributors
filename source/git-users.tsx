@@ -1,24 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { render, Text, Box } from 'ink';
-import * as nodegit from 'nodegit';
-import * as path from 'path';
-import * as meow from 'meow';
+import  nodegit from 'nodegit';
+import  path from 'path';
 
-const cli = meow(`
-  Usage
-    $ node cli_contributors.ts --repo <repository-path>
 
-  Options
-    --repo, -r  Path to the Git repository
-`, {
-  flags: {
-    repo: {
-      type: 'string',
-      alias: 'r',
-      isRequired: true,
-    },
-  },
-});
 
 export default function ContributorList({ repoPath }: { repoPath: string }) {
   const [months, setMonths] = useState<{ month: string; contributors: string[] }[]>([]);
