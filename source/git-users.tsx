@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { render, Text, Box } from 'ink';
+import {  Text, Box } from 'ink';
 import  nodegit from 'nodegit';
 import  path from 'path';
 
