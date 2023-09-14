@@ -19,7 +19,7 @@ async function listContributorsByMonth(repoPath: string) {
     const endOfMonth = new Date(year, month, 0);
 
     const repo = await nodegit.Repository.open(repositoryPath);
-    const references = await repo.getReferenceNames(nodegit.Reference.TYPE.LISTALL);
+    const references = await repo.getReferenceNames(nodegit.Reference.TYPE.ALL);
 
     const contributors = new Set<string>();
 
