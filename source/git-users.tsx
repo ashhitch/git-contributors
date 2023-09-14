@@ -82,7 +82,7 @@ export default function ContributorList({ repoPath }: { repoPath: string }) {
     <Box flexDirection="column">
       {months.map((monthData, index) => (
         <Box key={index}>
-          <Text bold>{monthData.month} ({monthData.contributors.length}):</Text>
+          <Text bold color="green">{monthData.month} ({monthData.contributors.length}):</Text>
           <Box marginLeft={2}>
             <Text>{monthData.contributors.join(', ')}</Text>
           </Box>
