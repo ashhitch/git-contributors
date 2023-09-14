@@ -3,7 +3,8 @@
 	"compilerOptions": {
 		"outDir": "dist",
 		"strict": false,
-		"esModuleInterop": true
+		"esModuleInterop": true,
+		"module": "nodenext"
 	},
 	"include": ["source"]
 }

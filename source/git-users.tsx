@@ -1,58 +1,90 @@
 import React, { useEffect, useState } from 'react';
 import {  Text, Box } from 'ink';
-import  nodegit from 'nodegit';
+import  nodegit from '@figma/nodegit';
 import  path from 'path';
+import { fileURLToPath } from 'url';
 
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+async function listContributorsByMonth(repoPath: string) {
+  const repositoryPath = path.resolve(__dirname, repoPath);
+  const currentDate = new Date();
+  const newMonths: { month: string; contributors: string[] }[] = [];
 
-export default function ContributorList({ repoPath }: { repoPath: string }) {
-  const [months, setMonths] = useState<{ month: string; contributors: string[] }[]>([]);
+  for (let i = 0; i < 12; i++) {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth() + 1;
+    const startOfMonth = new Date(year, month - 1, 1);
+    const endOfMonth = new Date(year, month, 0);
 
-  useEffect(() => {
-    const repositoryPath = path.resolve(__dirname, repoPath);
-    const currentDate = new Date();
-    const fetchMonths = async () => {
-      const newMonths: { month: string; contributors: string[] }[] = [];
+    const repo = await nodegit.Repository.open(repositoryPath);
+    const references = await repo.getReferenceNames(nodegit.Reference.TYPE.LISTALL);
 
-      for (let i = 0; i < 12; i++) {
-        const year = currentDate.getFullYear();
-        const month = currentDate.getMonth() + 1;
-        const startOfMonth = new Date(year, month - 1, 1);
-        const prevMonth = month === 1 ? 12 : month - 1;
-        const prevYear = month === 1 ? year - 1 : year;
-        const lastDayPrevMonth = new Date(prevYear, prevMonth, 0).getDate();
-        const endOfPrevMonth = new Date(prevYear, prevMonth - 1, lastDayPrevMonth);
+    const contributors = new Set<string>();
 
-        const contributors = await getContributors(repositoryPath, startOfMonth, endOfPrevMonth);
+    for (const reference of references) {
+      if (reference.startsWith('refs/heads/') || reference.startsWith('refs/tags/')) {
+        const commit = await repo.getReferenceCommit(reference);
+        const commitHistory = commit.history();
 
-        newMonths.push({
-          month: startOfMonth.toLocaleDateString('en-US', { year: 'numeric', month: 'long' }),
-          contributors: contributors.map(contributor => contributor.author().name()),
+        commitHistory.on('commit', async (commit: nodegit.Commit) => {
+          const commitDate = commit.date();
+
+          if (commitDate >= startOfMonth && commitDate <= endOfMonth) {
+            contributors.add(commit.author().name());
+          }
         });
 
-        currentDate.setMonth(currentDate.getMonth() - 1);
+        await new Promise<void>((resolve, reject) => {
+          commitHistory.on('end', () => {
+            resolve();
+          });
+
+          commitHistory.on('error', (err: Error) => {
+            reject(err);
+          });
+
+          commitHistory.start();
+        });
       }
+    }
 
-      setMonths(newMonths);
-    };
+    newMonths.push({
+      month: startOfMonth.toLocaleDateString('en-US', { year: 'numeric', month: 'long' }),
+      contributors: Array.from(contributors),
+    });
 
-    fetchMonths();
+    currentDate.setMonth(currentDate.getMonth() - 1);
+  }
+
+  return newMonths;
+}
+export default function ContributorList({ repoPath }: { repoPath: string }) {
+	const [months, setMonths] = useState<{ month: string; contributors: string[] }[]>([]);
+
+  useEffect(() => {
+    listContributorsByMonth(repoPath)
+      .then(data => {
+        setMonths(data);
+      })
+      .catch(error => {
+        console.error(`Error: ${error.message}`);
+      });
   }, [repoPath]);
 
-  async function getContributors(repositoryPath: string, startDate: Date, endDate: Date) {
-    const repo = await nodegit.Repository.open(repositoryPath);
-    const contributors = await repo.getMetricsBetween(startDate, endDate);
 
-    return contributors;
-  }
+
+
+
 
   return (
     <Box flexDirection="column">
       {months.map((monthData, index) => (
         <Box key={index}>
-          <Text bold>{monthData.month}:</Text>
+          <Text bold>{monthData.month} ({monthData.contributors.length}):</Text>
           <Box marginLeft={2}>
-            {monthData.contributors.join(', ')}
+            <Text>{monthData.contributors.join(', ')}</Text>
           </Box>
         </Box>
       ))}
